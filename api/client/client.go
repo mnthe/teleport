@@ -236,6 +236,12 @@ func connect(ctx context.Context, cfg Config) (*Client, error) {
 						sshConfig: sshConfig,
 						addr:      addr,
 					})
+					syncConnect(ctx, tlsRoutingConnect, connectParams{
+						cfg:       cfg,
+						tlsConfig: tlsConfig,
+						sshConfig: sshConfig,
+						addr:      addr,
+					})
 				}
 			}
 		}
@@ -314,6 +320,19 @@ func proxyConnect(ctx context.Context, params connectParams) (*Client, error) {
 		return nil, trace.BadParameter("must provide ssh client config")
 	}
 	dialer := NewProxyDialer(*params.sshConfig, params.cfg.KeepAlivePeriod, params.cfg.DialTimeout, params.addr, params.cfg.InsecureAddressDiscovery)
+	clt := newClient(params.cfg, dialer, params.tlsConfig)
+	if err := clt.dialGRPC(ctx, params.addr); err != nil {
+		return nil, trace.Wrap(err, "failed to connect to addr %v as a web proxy", params.addr)
+	}
+	return clt, nil
+}
+
+// tlsRoutingConnect connects to the Teleport Auth Server through the proxy using TLS Routing.
+func tlsRoutingConnect(ctx context.Context, params connectParams) (*Client, error) {
+	if params.sshConfig == nil {
+		return nil, trace.BadParameter("must provide ssh client config")
+	}
+	dialer := newTLSRoutingTunnelDialer(*params.sshConfig, params.cfg.KeepAlivePeriod, params.cfg.DialTimeout, params.addr, params.cfg.InsecureAddressDiscovery)
 	clt := newClient(params.cfg, dialer, params.tlsConfig)
 	if err := clt.dialGRPC(ctx, params.addr); err != nil {
 		return nil, trace.Wrap(err, "failed to connect to addr %v as a web proxy", params.addr)

@@ -28,6 +28,12 @@ kubeClusterName: ""
 #    uri: http://localhost:3000
 apps: []
 
+# List of label selectors that Teleport agent monitors
+# app_resources:
+#  - labels:
+#      "env": "prod"
+app_resources: []
+
 ################################################################
 # Values that must be provided if Database access is enabled.
 ################################################################
